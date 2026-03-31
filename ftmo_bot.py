@@ -129,16 +129,55 @@ def fetch_calendar_events() -> list[dict]:
     # Từ khóa liên quan XAUUSD: USD news ảnh hưởng giá vàng
     XAUUSD_KEYWORDS = ["XAU", "Gold", "XAUUSD"]
 
+    COLS = ["description", "instrument", "date", "actual", "forecast", "previous"]
+
     for row in rows:
-        cells = row.find_all("td")  # chỉ lấy td (data), bỏ th (header)
-        texts = [c.get_text(strip=True) for c in cells if c.get_text(strip=True)]
-        if len(texts) >= 3:
-            row_text = " ".join(texts)
-            if any(kw.lower() in row_text.lower() for kw in XAUUSD_KEYWORDS):
-                events.append({"raw": " | ".join(texts)})
+        cells = row.find_all("td")
+        if len(cells) < 3:
+            continue
+
+        # Lấy text từng cell, lấy dòng đầu tiên (tránh text bị ghép)
+        def cell_text(cell):
+            # Lấy text của các thẻ con riêng lẻ, ưu tiên div/span đầu tiên
+            parts = [s.strip() for s in cell.stripped_strings]
+            return parts[0] if parts else ""
+
+        values = [cell_text(c) for c in cells]
+        row_text = " ".join(values)
+
+        if not any(kw.lower() in row_text.lower() for kw in XAUUSD_KEYWORDS):
+            continue
+
+        event = {}
+        for i, col in enumerate(COLS):
+            event[col] = values[i] if i < len(values) else ""
+
+        # Lấy thêm instrument đầy đủ (có thể bị cắt)
+        if len(cells) > 1:
+            event["instrument"] = " | ".join(
+                s.strip() for s in cells[1].stripped_strings
+            )
+
+        events.append(event)
 
     print(f"[{_now()}] Calendar XAUUSD: tìm thấy {len(events)} sự kiện")
     return events[:30]
+
+def format_calendar(e: dict) -> str:
+    lines = ["📅 <b>FTMO CALENDAR — XAUUSD</b>", ""]
+    if e.get("description"):
+        lines.append(f"📌 <b>{e['description']}</b>")
+    if e.get("instrument"):
+        lines.append(f"💱 {e['instrument']}")
+    if e.get("date"):
+        lines.append(f"🕐 {e['date']} (Giờ VN)")
+    if e.get("actual"):
+        lines.append(f"✅ Actual: <b>{e['actual']}</b>")
+    if e.get("forecast"):
+        lines.append(f"🎯 Forecast: {e['forecast']}")
+    if e.get("previous"):
+        lines.append(f"📊 Previous: {e['previous']}")
+    return "\n".join(lines)
 
 # ─── JOB CHÍNH ───────────────────────────────────────────────────────────────
 def check_ftmo():
@@ -164,7 +203,7 @@ def check_ftmo():
     for event in fetch_calendar_events():
         key = "cal:" + event["raw"][:80]
         if key not in seen:
-            send_telegram(f"📅 <b>FTMO ECONOMIC CALENDAR</b>\n\n{event['raw']}")
+            send_telegram(format_calendar(event))
             seen.add(key)
             new_count += 1
             time.sleep(1)
