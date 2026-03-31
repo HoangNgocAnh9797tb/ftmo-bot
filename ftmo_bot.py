@@ -1,30 +1,25 @@
 import sys
 import io
-import requests
 import json
 import os
+import re
 import schedule
 import time
 from datetime import datetime, timedelta
-from bs4 import BeautifulSoup
 
 if sys.platform == "win32":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
+
+import requests
+from bs4 import BeautifulSoup
+from playwright.sync_api import sync_playwright
 
 # ─── CẤU HÌNH ────────────────────────────────────────────────────────────────
 BOT_TOKEN = os.getenv("BOT_TOKEN", "8210159742:AAEDGW7GstEmrDOJRyQIGWY91Jgd0aDCdbs")
 CHAT_ID   = os.getenv("CHAT_ID", "-5294816070")
 SEEN_FILE = "seen_articles.json"
 CHECK_INTERVAL_MINUTES = 30
-
-HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/124.0.0.0 Safari/537.36"
-    )
-}
 
 # ─── TELEGRAM ────────────────────────────────────────────────────────────────
 def send_telegram(message: str):
@@ -50,22 +45,37 @@ def save_seen(seen: set):
     with open(SEEN_FILE, "w", encoding="utf-8") as f:
         json.dump(list(seen), f, ensure_ascii=False, indent=2)
 
+# ─── PLAYWRIGHT: lấy HTML sau khi JS render xong ─────────────────────────────
+def get_rendered_html(url: str, wait_selector: str = None, timeout: int = 15000) -> str:
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+        page.goto(url, timeout=timeout)
+        if wait_selector:
+            try:
+                page.wait_for_selector(wait_selector, timeout=timeout)
+            except Exception:
+                pass
+        else:
+            page.wait_for_timeout(4000)  # chờ 4s để JS render
+        html = page.content()
+        browser.close()
+    return html
+
 # ─── 1. FTMO TRADING UPDATES ─────────────────────────────────────────────────
 def fetch_trading_updates() -> list[dict]:
     try:
-        r = requests.get("https://ftmo.com/en/trading-updates/", headers=HEADERS, timeout=15)
-        r.raise_for_status()
+        html = get_rendered_html("https://ftmo.com/en/trading-updates/")
     except Exception as e:
         print(f"[{_now()}] Trading Updates lỗi: {e}")
         return []
 
-    soup = BeautifulSoup(r.text, "html.parser")
-    # Debug lần đầu để xem cấu trúc HTML
-    print(f"[{_now()}] Trading Updates HTML snippet:\n{r.text[:800]}")
-
+    soup = BeautifulSoup(html, "html.parser")
     items = []
     seen_links = set()
+
     cards = soup.find_all("article") or soup.find_all(class_=lambda c: c and "post" in c.lower())
+    print(f"[{_now()}] Trading Updates: tìm thấy {len(cards)} cards")
 
     for card in cards:
         title_tag = card.find(["h2", "h3", "h4"])
@@ -102,41 +112,33 @@ def fetch_calendar_events() -> list[dict]:
     url = get_calendar_url()
     print(f"[{_now()}] Calendar URL: {url}")
     try:
-        r = requests.get(url, headers=HEADERS, timeout=15)
-        r.raise_for_status()
+        html = get_rendered_html(url, wait_selector="table, .calendar, tr.event, [class*='calendar']")
     except Exception as e:
         print(f"[{_now()}] Calendar lỗi: {e}")
         return []
 
-    # Debug HTML
-    print(f"[{_now()}] Calendar HTML snippet:\n{r.text[:800]}")
-
-    soup = BeautifulSoup(r.text, "html.parser")
+    soup = BeautifulSoup(html, "html.parser")
     events = []
 
-    # Thử các selector phổ biến cho calendar
-    rows = (
-        soup.find_all("tr", class_=lambda c: c and "event" in c.lower()) or
-        soup.find_all("div", class_=lambda c: c and "event" in c.lower()) or
-        soup.find_all("li",  class_=lambda c: c and "event" in c.lower()) or
-        soup.find_all("tr")[1:]  # bỏ header row
-    )
+    # Thử tìm table rows
+    rows = soup.find_all("tr")
+    print(f"[{_now()}] Calendar: tìm thấy {len(rows)} rows")
 
-    for row in rows[:30]:
+    for row in rows:
         cells = row.find_all(["td", "th"])
         texts = [c.get_text(strip=True) for c in cells if c.get_text(strip=True)]
-        if len(texts) >= 2:
+        if len(texts) >= 3:  # ít nhất có time, currency, event name
             events.append({"raw": " | ".join(texts)})
 
-    # Nếu không thấy, tìm JSON trong script tags
     if not events:
-        for script in soup.find_all("script"):
-            content = script.string or ""
-            if "event" in content.lower() and len(content) > 100:
-                print(f"[{_now()}] Script tag snippet: {content[:400]}")
-                break
+        # Fallback: tìm div/li có class liên quan calendar
+        items = soup.find_all(class_=re.compile(r"(calendar|event|row)", re.I))
+        for item in items[:30]:
+            text = item.get_text(strip=True)
+            if len(text) > 10:
+                events.append({"raw": text[:200]})
 
-    return events
+    return events[:30]
 
 # ─── JOB CHÍNH ───────────────────────────────────────────────────────────────
 def check_ftmo():

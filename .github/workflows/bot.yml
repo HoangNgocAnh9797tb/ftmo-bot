@@ -20,7 +20,9 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install requests beautifulsoup4 schedule
+        run: |
+          pip install requests beautifulsoup4 schedule playwright
+          playwright install chromium --with-deps
 
       - name: Run bot (one-time check)
         env:
