@@ -81,6 +81,11 @@ def fetch_trading_updates() -> list[dict]:
 
     cards = soup.find_all("article") or soup.find_all(class_=lambda c: c and "post" in c.lower())
     print(f"[{_now()}] Trading Updates: tìm thấy {len(cards)} cards")
+    # Debug 3 card đầu
+    for card in cards[:3]:
+        t = card.find(["h2","h3","h4"])
+        a = card.find("a", href=True)
+        print(f"  title={t.get_text(strip=True)[:50] if t else 'NONE'} | link={a['href'][:60] if a else 'NONE'}")
 
     for card in cards:
         title_tag = card.find(["h2", "h3", "h4"])
