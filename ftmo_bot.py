@@ -101,18 +101,18 @@ def fetch_trading_updates() -> list[dict]:
     items = []
     seen_links = set()
 
-    # Tìm link các bài trading update
-    all_links = soup.find_all("a", href=lambda h: h and "trading-update" in h.lower())
+    # Tìm link "Thông tin cập nhật – DD/MM/YYYY"
+    all_links = soup.find_all("a", string=lambda t: t and "cập nhật" in t.lower())
     print(f"[{_now()}] Trading Updates: tìm thấy {len(all_links)} links")
 
     for a in all_links:
         link = a["href"]
         if not link.startswith("http"):
             link = "https://ftmo.com" + link
-        if link in seen_links or link.rstrip("/").endswith("trading-updates"):
+        if link in seen_links:
             continue
         seen_links.add(link)
-        title = a.get_text(strip=True) or link
+        title = a.get_text(strip=True)
         items.append({"title": title, "link": link})
         if len(items) >= 1:
             break
