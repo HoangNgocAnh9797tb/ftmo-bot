@@ -99,24 +99,19 @@ def fetch_trading_updates() -> list[dict]:
 
     soup = BeautifulSoup(html, "html.parser")
     items = []
-    seen_links = set()
 
-    # Tìm link "Thông tin cập nhật – DD/MM/YYYY"
-    all_links = soup.find_all("a", string=lambda t: t and "cập nhật" in t.lower())
-    print(f"[{_now()}] Trading Updates: tìm thấy {len(all_links)} links")
+    # Lấy bài mới nhất — link có text dạng "Thông tin cập nhật – DD/MM/YYYY"
+    latest = soup.find("a", string=lambda t: t and "cập nhật" in t.lower())
+    if not latest:
+        print(f"[{_now()}] Trading Updates: không tìm thấy link")
+        return []
 
-    for a in all_links:
-        link = a["href"]
-        if not link.startswith("http"):
-            link = "https://ftmo.com" + link
-        if link in seen_links:
-            continue
-        seen_links.add(link)
-        title = a.get_text(strip=True)
-        items.append({"title": title, "link": link})
-        if len(items) >= 1:
-            break
-
+    link = latest["href"]
+    if not link.startswith("http"):
+        link = "https://ftmo.com" + link
+    title = latest.get_text(strip=True)
+    print(f"[{_now()}] Trading Updates latest: {title}")
+    items.append({"title": title, "link": link})
     return items
 
 # ─── 2. FTMO CALENDAR ────────────────────────────────────────────────────────
