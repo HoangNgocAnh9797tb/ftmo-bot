@@ -46,18 +46,21 @@ def save_seen(seen: set):
         json.dump(list(seen), f, ensure_ascii=False, indent=2)
 
 # ─── PLAYWRIGHT: lấy HTML sau khi JS render xong ─────────────────────────────
-def get_rendered_html(url: str, wait_selector: str = None, timeout: int = 15000) -> str:
+def get_rendered_html(url: str, wait_selector: str = None, timeout: int = 20000) -> str:
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
-        page.goto(url, timeout=timeout)
+        page.goto(url, timeout=timeout, wait_until="domcontentloaded")
+        # Chờ network idle để API calls hoàn tất
+        try:
+            page.wait_for_load_state("networkidle", timeout=timeout)
+        except Exception:
+            page.wait_for_timeout(5000)
         if wait_selector:
             try:
                 page.wait_for_selector(wait_selector, timeout=timeout)
             except Exception:
                 pass
-        else:
-            page.wait_for_timeout(4000)  # chờ 4s để JS render
         html = page.content()
         browser.close()
     return html
@@ -125,7 +128,7 @@ def fetch_calendar_events() -> list[dict]:
     print(f"[{_now()}] Calendar: tìm thấy {len(rows)} rows")
 
     for row in rows:
-        cells = row.find_all(["td", "th"])
+        cells = row.find_all("td")  # chỉ lấy td (data), bỏ th (header)
         texts = [c.get_text(strip=True) for c in cells if c.get_text(strip=True)]
         if len(texts) >= 3:  # ít nhất có time, currency, event name
             events.append({"raw": " | ".join(texts)})
