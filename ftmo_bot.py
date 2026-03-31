@@ -100,17 +100,17 @@ def fetch_trading_updates() -> list[dict]:
     soup = BeautifulSoup(html, "html.parser")
     items = []
 
-    # Lấy bài mới nhất — link có text dạng "Thông tin cập nhật – DD/MM/YYYY"
-    latest = soup.find("a", string=lambda t: t and "cập nhật" in t.lower())
-    if not latest:
-        print(f"[{_now()}] Trading Updates: không tìm thấy link")
+    import re as _re
+    # Tìm text dạng "Thông tin cập nhật – DD/MM/YYYY" trong toàn trang
+    match = _re.search(r"Thông tin cập nhật\s*[–-]\s*(\d{2})/(\d{2})/(\d{4})", soup.get_text())
+    if not match:
+        print(f"[{_now()}] Trading Updates: không tìm thấy tiêu đề")
         return []
 
-    link = latest["href"]
-    if not link.startswith("http"):
-        link = "https://ftmo.com" + link
-    title = latest.get_text(strip=True)
-    print(f"[{_now()}] Trading Updates latest: {title}")
+    day, month, year = match.group(1), match.group(2), match.group(3)
+    title = f"Thông tin cập nhật – {day}/{month}/{year}"
+    link = f"https://ftmo.com/vi/blog/trading-updates/thong-tin-cap-nhat-{day}-{month}-{year}/"
+    print(f"[{_now()}] Trading Updates latest: {title} — {link}")
     items.append({"title": title, "link": link})
     return items
 
