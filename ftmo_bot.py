@@ -36,8 +36,11 @@ def send_telegram(message: str):
 # ─── SEEN (tránh gửi trùng) ──────────────────────────────────────────────────
 def load_seen() -> set:
     if os.path.exists(SEEN_FILE):
-        with open(SEEN_FILE, "r", encoding="utf-8") as f:
-            return set(json.load(f))
+        try:
+            with open(SEEN_FILE, "r", encoding="utf-8") as f:
+                return set(json.load(f))
+        except Exception:
+            return set()
     return set()
 
 def save_seen(seen: set):
