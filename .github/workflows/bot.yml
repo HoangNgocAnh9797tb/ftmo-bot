@@ -1,0 +1,35 @@
+name: FTMO Bot
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"  # chạy mỗi 30 phút
+  workflow_dispatch:         # cho phép chạy thủ công
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install requests beautifulsoup4
+
+      - name: Run bot (one-time check)
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+        run: python -c "from ftmo_bot import check_ftmo; check_ftmo()"
+
+      - name: Lưu danh sách bài đã gửi
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add seen_articles.json
+          git diff --staged --quiet || git commit -m "update seen articles"
+          git push
