@@ -182,16 +182,14 @@ def check_ftmo():
     for item in fetch_trading_updates():
         key = "update:" + item["link"]
         if key not in seen:
-            content = fetch_article_content(item["link"])
-            # Gửi theo từng đoạn 3800 ký tự (giới hạn Telegram 4096)
-            header = f"🔔 <b>FTMO TRADING UPDATES</b>\n🔗 {item['link']}\n\n"
-            full = header + content
-            for i in range(0, len(full), 3800):
-                chunk = full[i:i+3800]
-                send_telegram(chunk)
-                time.sleep(1)
+            send_telegram(
+                f"🔔 <b>FTMO TRADING UPDATES</b>\n\n"
+                f"📌 <b>{item['title']}</b>\n\n"
+                f"🔗 {item['link']}"
+            )
             seen.add(key)
             new_count += 1
+            time.sleep(1)
 
     # Calendar
     print(f"[{_now()}] Kiểm tra Calendar...")
