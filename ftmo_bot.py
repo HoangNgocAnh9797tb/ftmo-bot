@@ -92,7 +92,7 @@ def fetch_article_content(url: str) -> str:
 
 def fetch_trading_updates() -> list[dict]:
     try:
-        html = get_rendered_html("https://ftmo.com/en/trading-updates/")
+        html = get_rendered_html("https://ftmo.com/vi/trading-updates/")
     except Exception as e:
         print(f"[{_now()}] Trading Updates lỗi: {e}")
         return []
@@ -114,7 +114,7 @@ def fetch_trading_updates() -> list[dict]:
         seen_links.add(link)
         title = a.get_text(strip=True) or link
         items.append({"title": title, "link": link})
-        if len(items) >= 5:
+        if len(items) >= 1:
             break
 
     return items
