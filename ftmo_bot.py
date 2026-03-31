@@ -2,7 +2,6 @@ import sys
 import io
 import json
 import os
-import re
 import schedule
 import time
 from datetime import datetime, timedelta
@@ -127,20 +126,18 @@ def fetch_calendar_events() -> list[dict]:
     rows = soup.find_all("tr")
     print(f"[{_now()}] Calendar: tìm thấy {len(rows)} rows")
 
+    # Từ khóa liên quan XAUUSD: USD news ảnh hưởng giá vàng
+    XAUUSD_KEYWORDS = ["XAU", "Gold", "XAUUSD"]
+
     for row in rows:
         cells = row.find_all("td")  # chỉ lấy td (data), bỏ th (header)
         texts = [c.get_text(strip=True) for c in cells if c.get_text(strip=True)]
-        if len(texts) >= 3:  # ít nhất có time, currency, event name
-            events.append({"raw": " | ".join(texts)})
+        if len(texts) >= 3:
+            row_text = " ".join(texts)
+            if any(kw.lower() in row_text.lower() for kw in XAUUSD_KEYWORDS):
+                events.append({"raw": " | ".join(texts)})
 
-    if not events:
-        # Fallback: tìm div/li có class liên quan calendar
-        items = soup.find_all(class_=re.compile(r"(calendar|event|row)", re.I))
-        for item in items[:30]:
-            text = item.get_text(strip=True)
-            if len(text) > 10:
-                events.append({"raw": text[:200]})
-
+    print(f"[{_now()}] Calendar XAUUSD: tìm thấy {len(events)} sự kiện")
     return events[:30]
 
 # ─── JOB CHÍNH ───────────────────────────────────────────────────────────────
