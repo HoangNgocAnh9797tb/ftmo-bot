@@ -16,8 +16,8 @@ from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
 
 # ─── CẤU HÌNH ────────────────────────────────────────────────────────────────
-BOT_TOKEN = os.getenv("BOT_TOKEN", "8210159742:AAEDGW7GstEmrDOJRyQIGWY91Jgd0aDCdbs")
-CHAT_ID   = os.getenv("CHAT_ID", "-5294816070")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "")
+CHAT_ID   = os.getenv("CHAT_ID", "")
 SEEN_FILE = "seen_articles.json"
 CHECK_INTERVAL_MINUTES = 30
 
