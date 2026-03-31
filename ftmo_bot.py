@@ -68,6 +68,28 @@ def get_rendered_html(url: str, wait_selector: str = None, timeout: int = 20000)
     return html
 
 # ─── 1. FTMO TRADING UPDATES ─────────────────────────────────────────────────
+def fetch_article_content(url: str) -> str:
+    """Đọc nội dung đầy đủ từ trang bài viết."""
+    try:
+        html = get_rendered_html(url)
+    except Exception as e:
+        print(f"[{_now()}] Lỗi đọc bài: {e}")
+        return ""
+    soup = BeautifulSoup(html, "html.parser")
+    # Xóa nav, header, footer, script
+    for tag in soup(["nav", "header", "footer", "script", "style", "noscript"]):
+        tag.decompose()
+    # Lấy phần nội dung chính
+    body = (
+        soup.find("article") or
+        soup.find(class_=lambda c: c and "content" in c.lower()) or
+        soup.find("main") or
+        soup.body
+    )
+    if not body:
+        return ""
+    return body.get_text("\n", strip=True)
+
 def fetch_trading_updates() -> list[dict]:
     try:
         html = get_rendered_html("https://ftmo.com/en/trading-updates/")
@@ -79,29 +101,20 @@ def fetch_trading_updates() -> list[dict]:
     items = []
     seen_links = set()
 
-    cards = soup.find_all("article") or soup.find_all(class_=lambda c: c and "post" in c.lower())
-    print(f"[{_now()}] Trading Updates: tìm thấy {len(cards)} cards")
-    # Debug 3 card đầu
-    for card in cards[:3]:
-        t = card.find(["h2","h3","h4"])
-        a = card.find("a", href=True)
-        print(f"  title={t.get_text(strip=True)[:50] if t else 'NONE'} | link={a['href'][:60] if a else 'NONE'}")
+    # Tìm link các bài trading update
+    all_links = soup.find_all("a", href=lambda h: h and "trading-update" in h.lower())
+    print(f"[{_now()}] Trading Updates: tìm thấy {len(all_links)} links")
 
-    for card in cards:
-        title_tag = card.find(["h2", "h3", "h4"])
-        title = title_tag.get_text(strip=True) if title_tag else ""
-        link_tag = card.find("a", href=True)
-        link = link_tag["href"] if link_tag else ""
-        if link and not link.startswith("http"):
+    for a in all_links:
+        link = a["href"]
+        if not link.startswith("http"):
             link = "https://ftmo.com" + link
-        date_tag = card.find("time")
-        date = date_tag.get_text(strip=True) if date_tag else ""
-
-        if not title or not link or link in seen_links:
+        if link in seen_links or link.rstrip("/").endswith("trading-updates"):
             continue
         seen_links.add(link)
-        items.append({"title": title, "link": link, "date": date})
-        if len(items) >= 10:
+        title = a.get_text(strip=True) or link
+        items.append({"title": title, "link": link})
+        if len(items) >= 5:
             break
 
     return items
@@ -174,14 +187,16 @@ def check_ftmo():
     for item in fetch_trading_updates():
         key = "update:" + item["link"]
         if key not in seen:
-            lines = ["🔔 <b>FTMO TRADING UPDATES</b>", "", f"📌 <b>{item['title']}</b>"]
-            if item["date"]:
-                lines.append(f"🗓 {item['date']}")
-            lines.append(f"\n🔗 <a href=\"{item['link']}\">Đọc thêm</a>")
-            send_telegram("\n".join(lines))
+            content = fetch_article_content(item["link"])
+            # Gửi theo từng đoạn 3800 ký tự (giới hạn Telegram 4096)
+            header = f"🔔 <b>FTMO TRADING UPDATES</b>\n🔗 {item['link']}\n\n"
+            full = header + content
+            for i in range(0, len(full), 3800):
+                chunk = full[i:i+3800]
+                send_telegram(chunk)
+                time.sleep(1)
             seen.add(key)
             new_count += 1
-            time.sleep(1)
 
     # Calendar
     print(f"[{_now()}] Kiểm tra Calendar...")
