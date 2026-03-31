@@ -147,6 +147,8 @@ def fetch_calendar_events() -> list[dict]:
         row_text = " ".join(texts)
         if not any(kw.lower() in row_text.lower() for kw in XAUUSD_KEYWORDS):
             continue
+        if "restricted event" not in row_text.lower():
+            continue
 
         events.append({"raw": " | ".join(texts)})
 
