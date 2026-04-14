@@ -1,13 +1,13 @@
 [
-  "cal:CPI y/y Restricted event | USD + US Indices + XAUUSD + DXY | 19:30 10 Apr | - | ",
   "cal:Non-Farm Employment Change Restricted event | USD + US Indices + XAUUSD + DXY | ",
-  "cal:Core CPI m/m Restricted event | USD + US Indices + XAUUSD + DXY | 19:30 10 Apr E",
-  "cal:CPI y/y Restricted event | USD + US Indices + XAUUSD + DXY | 19:30 10 Apr Expire",
-  "update:https://ftmo.com/vi/blog/trading-updates/thong-tin-cap-nhat-02-04-2026/",
-  "cal:Core CPI m/m Restricted event | USD + US Indices + XAUUSD + DXY | 19:30 10 Apr |",
   "cal:CPI m/m Restricted event | USD + US Indices + XAUUSD + DXY | 19:30 10 Apr Expire",
-  "update:https://ftmo.com/vi/blog/trading-updates/thong-tin-cap-nhat-09-04-2026/",
-  "update:https://ftmo.com/vi/blog/trading-updates/thong-tin-cap-nhat-26-03-2026/",
+  "cal:Core CPI m/m Restricted event | USD + US Indices + XAUUSD + DXY | 19:30 10 Apr |",
   "cal:FOMC Meeting Minutes Restricted event | USD + US Indices + XAUUSD + DXY | 01:00 ",
+  "update:https://ftmo.com/vi/blog/trading-updates/thong-tin-cap-nhat-09-04-2026/",
+  "update:https://ftmo.com/vi/blog/trading-updates/thong-tin-cap-nhat-02-04-2026/",
+  "cal:CPI y/y Restricted event | USD + US Indices + XAUUSD + DXY | 19:30 10 Apr Expire",
+  "update:https://ftmo.com/vi/blog/trading-updates/thong-tin-cap-nhat-26-03-2026/",
+  "cal:Core CPI m/m Restricted event | USD + US Indices + XAUUSD + DXY | 19:30 10 Apr E",
+  "cal:CPI y/y Restricted event | USD + US Indices + XAUUSD + DXY | 19:30 10 Apr | - | ",
   "cal:CPI m/m Restricted event | USD + US Indices + XAUUSD + DXY | 19:30 10 Apr | - | "
 ]
